@@ -1,0 +1,184 @@
+\section{Problem Formulation}
+\subsection{Structure of data and variables}
+Consider one observation $X$ and denote as $Y\in F$ an unobserved underlying meaning of that observation. This observation could be one word or a tuple of a word and its part of speech or any other set of data that is readily available. The underlying representation could be the word sense or GF-function or Wordnet synset of that word or any other information that is not readily observable. We assume that the space of all possible underlying representations is finite and denote it $F=\{y_i\}_{i=1}^N$. As the value of $Y$ for a given observation is not directly observe-able we can model each observation as one of a finite number of possibility-sets $X\in W$ where $W=\{x_i\}_{i=1}^K; x_i\subseteq F$ so that each observation consists of a set of possible underlying representations of that observation. A a concrete example of a space of underlying representations $F$ and a space of possible observations $W$ is $F$ being all GF-functions in a certain dictionary file and the observation space $W$ being a set consisting of one element for every word that could be a linearization of any of the GF-functions in $F$ and be the set of all functions that could linearize to that word, remember that $W$ is a set of subsets of $F$.
+\subsection{Probabilistic model and parameter estimation}
+We consider a set of such observations $O=\{X_i\}_{i=1}^M$ where we assume that to every set $X_i$ there is a hidden $Y_i\in X_i$ which is the actual underlying representation of that observation, although this underlying representation is hidden and therefore unknown. Collectively we denote the complete information including the underlying representations for all our observations $C=\{X_i, Y_i\}_{i=1}^M$. Assuming that all $\{Y_i\}_{i=1}^M$ are iid and that $P(Y=y_i)=\theta_i$ for a set of parameters $\theta$ with $\sum \theta_i = 1$ our goal is to estimate the parameters $\theta$. Using a a Maximum-likelihood approach this means we need to find the $\theta$ which maximizes 
+
+\begin{equation*}
+P(\theta | O)=\frac{P(O | \theta)P(\theta)}{P(O)},
+\end{equation*}
+where $P(\theta)$ is our prior belief of $\theta$ and $P(O | \theta) = l(O,\theta)$ is the likelihood function. The problem at hand is that we need to calculate this likelihood function, as our parameters $\theta$ are defined in relation to $Y$ and thus only indirectly to $X$
+
+Since we assume our observations are independent the likelihood function for all observations will just be the product of the likelihood functions of each individual observation and we thus look at the likelihood function for each observation, that is $P(X | \theta)$, separately. Now by the total probability law we have 
+
+\begin{equation*}
+P(X | \theta) = \sum_{y_i\in F}P(X,y_i | \theta)
+\end{equation*}
+and since by definition we have that $P(X,y_i)=0$ if $y_i\not\in X$, that is if $y_i$ is not a function that can generate the observation $X$, we get that 
+
+\begin{equation*}
+P(X | \theta) = \sum_{y_i\in X}P(X,y_i | \theta),
+\end{equation*}
+note the change of the range of summation.
+
+As we have not defined any further relationship between the observations $X$ and the underlying representations $Y$ we cannot further simplify this expression for the likelihood without imposing further constraints on the model or introducing more parameters. For example one might expand the parameter set $\theta$ to include one parameter for each observation/representation pair and define the expression to be $P(X=x_i,Y=y_j | \theta)=\theta_{ij}$. However, since the set $W$ will be very dependent on the language the observations are drawn from, such an approach will mean that we have to estimate many parameters which will be very language dependent, something we wish to avoid. To avoid this we will introduce the concept of partitioning observation spaces, described in the next section.
+
+\section{Partitioning observation spaces}
+We say that an observation space $W$ is a partition of $F$ if for each $Y\in F$ there exists one and only one $X\in W$ such that $Y\in X$. This means that for each underlying representation $Y$, the observation $X$ will be uniquely determined or that we can define a unique function $s: F\mapsto W$ such that $s$ is a surjection with the property $Y\in s(Y)$. An example of such a function $s$ would be the linearization function of GF, which maps a function to the lemma associated with that function. 
+
+Since the language we are sampling our observations from can be assumed to be known, this means we can use different observation spaces $W_l$ for each language $l$ where each $W_l$ partitions $F$. We do not write out which observation space we are using as the likelihood equations does not depend on the space used, but rather depends of that the observation is drawn from a known partitioning observation state.
+
+For our probability model this means that 
+
+\begin{equation*}
+P(X | Y) = I_X(Y) =\begin{cases} 
+      1 & Y\in X \\
+      0 & Y\not\in X 
+   \end{cases},
+\end{equation*}
+where $I_X$ is the indicator function for $X$, and by extension that
+
+\begin{equation*}
+P(X, Y) = P(X | Y)P(Y)=I_X(Y)P(Y)=\begin{cases} 
+      P(Y) & Y\in X \\
+      0 & Y\not\in X 
+   \end{cases}
+\end{equation*}
+which means that the likelihood function of an observation for a given theta can be rewritten as 
+
+\begin{equation*}
+P(X | \theta) = \sum_{y_i\in X}P(y_i | \theta)=\sum_{i: y_i\in X}\theta_i,
+\end{equation*}
+eliminating the need to introduce new observation-dependent variables.
+
+\subsection{Consequences for the model}
+A consequence of using a partitioned observation space is that we rely on observations being in a form that is unique given its underlying representation. As an example this means that if our underlying space $Y$ is the set of GF-functions we can not consider information derived from the morphological form of an observed word, as the various such forms are not unique with respect to the function. If we want to take this information into account we need to also include parameters describing $P(X|Y)$ or make further assumptions of those probabilities \footnote{Technically this problem can actually be remedied without expanding the probabilistic model by using different partitioning observation spaces depending on which morphological form we see in the same way that we use different spaces depending on the language observed. For example we could use one observation space for verbs in past tense and one for verbs in present tense. However, this relies on us being able to observe which tense a verb is in deterministically in order to ``choose'' the right space. In practice this would make available information such as disambiguating verbs having the same lemma but differing conjugations, but the implementation would be messy and it is questionable how much would be gained unless observing a language making heavy use of irregular morphology.}. This is something that merits further investigation as we move to using wordnet data for our for our representation model, where one synset can often contain several lemmas. 
+
+\subsection{An example}
+
+Lets say we have two senses of the English word ``bank'' that we want to disambiguate between, one is \texttt{bank.n.1} as in the money lending institution and the other is \texttt{bank.n.2} as in a riverbank. 
+
+In an English text it ambiguous
+
+
+\section{The Expectation-Maximization algorithm}
+Having a closed expression for the likelihood of one observation we can calculate the joint likelihood of all observations as 
+\begin{equation*}
+P(O | \theta) = \prod_{i=1}^M P(X_i | \theta) = \prod_{i=1}^M \sum_{j: y_j\in X_i}\theta_j,
+\end{equation*}
+which if enough sets $X_i$ have more than one element, that is if we have many ambiguous observations, is easily seen as becoming increasingly intractable to maximize as M gets larger.
+
+In order to overcome this limitation we look to the Expectation-Maximization method, which is a way to iteratively approximate the maximum likelihood estimate. The Expectation-Maximization algorithm consists of two steps that are performed iteratively, producing a sequence of estimates. 
+
+Expectation step: Calculate $Q(\theta,\theta_{t-1})=E_{\theta_{t-1}}\left ( L(C,\theta) | O \right )$, where $L(C,\theta$ is the log-likelihood of the complete data for $\theta$, that is $\log (P(C|\theta))$
+
+Maximization step: Update the estimate to $\theta_t = \argmax_\theta Q(\theta, \theta_{t-1})$
+
+\subsection{The expectation step}
+Now since each observation is independent and by the definition of conditional expectation we have that 
+\begin{equation*}
+\begin{split}
+Q(\theta,\theta_{t-1})%&=\sum_{X\in O} E_{\theta_{t-1}}\left ( L(Y,\theta) | X \right )\\
+&= \sum_{X\in O} \sum_{y_i \in F} L(y_j,\theta)P(y_i|X,\theta_{t-1})
+\end{split}
+\end{equation*}
+%\begin{equation*}
+%P(y_i|X,\theta_{t-1}) = %\frac{P(y_i,X|\theta_{t-1})}{P(X|\theta_{t-1})}
+%\end{equation*}
+and if we use the assumption that $X$ comes from a partitioning observation space we have that 
+\begin{equation*}
+P(y_i|X,\theta_{t-1}) = \frac{P(y_i,X|\theta_{t-1})}{P(X|\theta_{t-1})} =\frac{I_X(y_i)P(y_i|\theta_{t-1})}{\sum_{y\in X} P(y|\theta_{t-1})}
+\end{equation*}
+which would mean that we have
+\begin{equation*}
+\begin{split}
+Q(\theta, \theta_{t-1}) &= \sum_{X\in O} \sum_{y_i \in X} L(y_i,\theta) \frac{P(y_i|\theta_{t-1})}{\sum_{y\in X} P(y|\theta_{t-1})}\\
+&=  \sum_{y_i \in F}L(y_i,\theta)\sum_{X\in O}  \frac{I_X(y_i)P(y_i|\theta_{t-1})}{\sum_{y\in X} P(y|\theta_{t-1})}\\
+&=  \sum_{y_i \in F}\log (\theta_i)\sum_{X\in O}  \frac{I_X(y_i)\theta_{i, t-1}}{\sum_{j:y_j\in X} \theta_{j,t-1}}
+\end{split}
+\end{equation*}
+\subsection{The maximization step}
+In order to maximize the function $Q(\theta, \theta_{t-1})$ we observe that it is on the form
+\begin{equation*}
+Q(\theta, \theta_{t-1}) = \sum_{i: y_i\in F}c_i\log (\theta_i),
+\end{equation*}
+where
+\begin{equation}
+\label{pseudocounts}
+c_i=\sum_{X\in O}  \frac{I_X(y_i)\theta_{i, t-1}}{\sum_{j:y_j\in X} \theta_{j,t-1}}
+\end{equation}
+and we recognize that this is exactly the likelihood function of the parameters of a multinomial distribution when we have observed $c_i$ outcomes for the bins corresponding to the parameters $\theta_i$ respectively. We can view $c_i$ as an expected count of each underlying representation and more importantly we can use the well known formula for maximizing the likelihood function of a multinomial distribution which says that $\hat \theta_i = \frac{c_i}{n}$, where $n=\sum_i c_i$.
+%\end{multicols}
+\section{Different observation spaces}
+Performance of the estimation will depend both on the amount of data used, but also on the nature of the space of possible underlying representations used and the various observation spaces used. For one it is easy to see that in order for any meaningful disambiguation of any observation set to occur we must use at least two different partitioning observation spaces. In fact, the theorem below will show that in order to be able to disambiguate any two underlying representations we need to observe at least one observation where one of the underlying representation is possible but not the other.
+
+\begin{theorem}
+Consider a space of underlying observations $F$, a set of partitioning observation spaces $P = \{W_p\}$, a sequence of observations $O=(X_i, p)_{i=1}^M$, $X_i \in W_p$ and two underlying representations $y_a,y_b\in F$ such that for any observation $(X_i,p)\in X$, $y_a \in X_i \iff y_b \in X_i$. The estimated counts $c_a$ and $c_b$ as given by equation (\ref{pseudocounts}) will be equal.
+\end{theorem}
+\begin{proof}
+The expression for the counts $c_i$ as given in equation (\ref{pseudocounts}) only depends on the indicator functions for the observation sets. Since $y_a \in X_i \iff y_b \in X_i$ for any $X\in O$, we have that $I_X(y_a) = I_X(y_b)$ for all $X\in O$, and thus $c_a=c_b$.
+\end{proof}
+
+\section{EM for non-partitioning observation spaces}
+In this section we explore how the EM model could work for non-partitioning observation spaces. By relaxing the assumption that each underlying representation only manifests itself as one type of observation per language we will be able to capture a wider range of linguistic information, that is we can account for synonyms, words that could mean the same thing. We do this by introducing the parameter sets $\pi$ and $\phi^s$, where $\pi_i = P(Y=y_i)$ and $\phi^s_{ji} = P(X = x_j | Y=y_i)$ for observations from the language $s$. Note that the parameter set $\pi$ is still language independent, and can be seen as the  but we add the language dependent parameters $\phi^s$ that represent a probabilistic model of the representation of each underlying representation in each language $s$.
+
+In this model the expression for the log-likelihood for a set of observations $O = (x_i,s_i)_{i=1}^N$ becomes $L(O,\pi,\phi)=\sum \log (\sum \phi_{ji}^{s_i}\pi_i)$, and in the expectation maximization algorithm we get the expression
+\begin{equation*}
+\begin{split}
+Q(\theta,\theta_{t-1})%&=\sum_{X\in O} E_{\theta_{t-1}}\left ( L(Y,\theta) | X \right )\\
+&= \sum_{X\in O} \sum_{y_i \in F}
+L(y_j,\theta)
+P(y_i|X,\theta_{t-1})\\
+&= \sum_{X\in O} \sum_{y_i \in F}
+L(y_j,\theta)
+\frac{P(X|y_i,\theta_{t-1})P(y_i,\theta_{t-1})}
+{P(X|\theta_{t-1})}\\
+&= \sum_{X\in O} \sum_{y_i \in F}
+L(y_j,\theta)
+\frac{P(X|y_i,\theta_{t-1})P(y_i,\theta_{t-1})}
+{\sum_{Y\in F}P(X|Y,\theta_{t-1})P(Y,\theta_{t-1})}\\
+&= \sum_{s \in S} \sum_{i: x_i\in W^s} \sum_{j: y_j \in F}
+L(y_j,\pi,\phi^s)
+\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+{\sum_{k: y_k \in F}\phi^{t-1}_{ik}\pi^{t-1}_{k}}\\
+&= \sum_{s \in S} \sum_{i: x_i\in W^s} \sum_{j: y_j \in F}
+(\log(\phi_{sij}) + \log(\pi_j))
+\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+{\sum_{k: y_k \in F}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
+\end{split}
+\end{equation*}
+We can maximize each of the parameter subsets: $\pi$, $\phi_{si.}$ separately as they only occur in separate terms and have no interdependent constraints.
+\begin{equation*}
+\begin{split}
+\pi^t &= \argmax_{\pi}
+\sum_{j: y_j \in F}\log(\pi_j) \sum_{s \in S} \sum_{i: x_i\in W^s}
+\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}{\sum_{k: y_k \in F}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
+, \sum_j\pi_j = 1\\
+\phi_{s.j}^t &= \argmax_{\phi_{s.j}} \sum_{i: x_i\in W^s}
+\log(\phi_{sij})
+\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+{\sum_{k: y_k \in F}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
+, \sum_i \phi_{sij} = 1
+\end{split}
+\end{equation*}
+We see that we have ``expected counts'' $\hat c^t_{sij}$ for the number of observations with the complete information $(x_i,y_j,s)$ that we can denote as:
+\begin{equation*}
+\hat c^t_{sij} = \frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}{\sum_{k: y_k \in F}\phi^{t-1}_{sik}\pi^{t-1}_{k}} = c_{si}P(Y=y_j|X=x_i,s,\pi, \phi)
+\end{equation*}
+
+Applying lagrange multipliers and setting derivative to zero gives:
+\begin{equation*}
+\begin{split}
+\pi^t_j &= \frac{\sum_{s,i}\hat c^t_{sij}}
+{\sum_{s,i,j} \hat c^t_{sij}}
+= \sum_{s,i}\frac{\hat c^t_{sij}}
+{N}\\
+\phi_{sij}^t &= 
+\frac{\hat c^t_{sij}}
+{\sum_{i} \hat c^t_{sij}}.
+\end{split}
+\end{equation*}
+Although at first sight calculating these updates might seem to have a time complexity of $O(N*M)$, if we through a knowledge based source, such as a dictionary, can put constraints on the probabilities $\phi$ in a way such that most elements will be zero, we can in fact get the time complexity down to $O(kN)$ where $k$ is the maximal number of possible words one functions might linearize to.
+
+\section{Bigram models}
+Until now we have focused on looking at expectation maximization for words in a context free sense, that is we look at each word independently of its context. The same approach can be used to look at larger contexts, for example at pairs of words occurring together in text or occurring together in a syntactic sense by being connected in the dependency tree.

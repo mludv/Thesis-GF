@@ -1,0 +1,98 @@
+% CREATED BY DAVID FRISK, 2016
+\chapter{Methods}
+\section{Defining tree probabilities}
+\todo{We must describe the probability model in the following aspects:}
+We have a correspondence GF2UD, how does probabilities of UD trees generalize to GF trees.\\
+How do we define probabilities on UD trees by only looking at probabilities of sub trees.\\
+We can decide to only look at some information such as only lemma and part of speech.\\
+How do we combine our probabilities with current parser probabilities
+\section{Parameter estimation}
+The core of the developed method is the parameter estimation. The estimation is done from large amount of textual data deemed to be representative for the type of texts the model is supposed to describe. The main problem in estimating the parameters is that while the model describes properties of the unambiguous abstract trees we do not have a large amount of abstract syntax that could be used for estimation, we only have ambiguous text indifferent languages where the complete syntax trees are unknown.
+\subsection{Problem Formulation}
+The probability model used need to estimate the frequency of certain sub-trees occurring in the function tagged dependency trees of the type of text modelled. The function tagged dependency trees of a sentence is unknown, but if we have the dependency trees of every sentence and a list of possible function tags for each node in the dependency tree we can treat the function tagged sub-tree as latent information that can be marginalized in a maximum likelihood estimation using for example expectation maximization.
+\subsubsection{Structure of data and variables}
+Consider one observation of a dependency sub-tree $X$ and denote as $Y$ the function tagged sub-tree. The dependency sub-tree $X$ is assumed to be known and readily available while the function tagged sub-tree $Y$ is assumed to be unknown. We assume that the space of all possible function tagged sub trees is known and finite and we denote it $F=\{y_i\}_{i=1}^N$. The space of possible untagged subtrees will depend on the language of the observed sentence, and the space of possible untagged subtrees for each language $s$ is also assumed to be known and finite and is denoted $W_s=\{x_{si}\}_{i=1}^M$. Lastly we also assume that we for each language have knowledge of a \emph{possibility space} $D_s\subseteq W_s \times F$, where $(x_{si},y_j)\in D_s$ if and only if $y_j$ is a possible function tagged subtree given the untagged subtree $x_{si}$. The simplest example of a space of possible function tagged subtrees is the space of all tagged subtrees of size one, that is simply all possible functions which for example could be defined to be all GF-functions in a certain dictionary file. The space of  and the observation space $W$ being a set consisting of one element for every word that could be a linearization of any of the GF-functions in $F$ and be the set of all functions that could linearize to that word, remember that $W$ is a set of subsets of $F$.
+\subsubsection{Probabilistic model and parameter estimation}
+We consider a sequence of such observations $O=(X_i, s_i)_{i=1}^K, X_i\in W_{s_i}$ where we assume that to every set $X_i$ there is a fixed $Y_i\in F$ such that $(X_i,Y_i)\in D_{s_i}$. These $Y_i$ are unobservable and thus unknown. We call $O$ the observable information and call $C = (X_i,s_i, Y_i)_{i=1}^K, (X_i,Y_i)\in D_{s_i}$ the \emph{complete information}. Assuming that each pair of observation and its corresponding hidden information is iid and that $P(Y=y_i)=\pi_i$ and $P(X=x_{sj} | Y=y_i, s) = \phi_{sij}$ our goal is to estimate the parameters $(\pi, \phi)$. Using a Maximum-likelihood approach this means we need to find the $(\pi, \phi)$ which maximizes 
+
+\begin{equation*}
+P(\pi, \phi | O)=\frac{P(O | \pi, \phi)P(\pi, \phi)}{P(O)},
+\end{equation*}
+where $P((\pi, \phi))$ is our prior belief of $(\pi, \phi)$ and $P(O | (\pi, \phi)) = l(O,(\pi, \phi))$ is the likelihood function. The problem at hand is to maximize this likelihood function.
+
+Since we assume our observations are independent the likelihood function for all observations will just be the product of the likelihood functions of each individual observation and we thus look at the likelihood function for each observation, that is $P(X | \pi, \phi)$, separately. Now by the law of total probability we have 
+
+\begin{equation*}
+\begin{split}
+P(X=x_j | \pi, \phi) = &\sum_{i:(x_j,y_i)\in D_s}P(X=x_j,y_i | \pi, \phi) = \\
+&\sum_{i:(x_j,y_i)\in D_s} P(X=x_j|y_i , \pi, \phi)P(y_i | \pi, \phi) = \\
+&\sum_{i:(x_j,y_i)\in D_s}\pi_i\phi_{ij},
+\end{split}
+\end{equation*}
+which can be calculated without knowledge of the value of $Y$, since that variable was mariginalized out. However, as we want to calculate the total likelihood of all the observations 
+\begin{equation*}
+P(O | \pi, \phi) = \prod_{n=1}^K P(X=x_{j(n)} |\pi, \phi) = \prod_{n=1}^K \sum_{i:(X_n,y_i)\in D_s(n)} \pi_i\phi_{ij(n)},
+\end{equation*}
+which unless the spaces $D_s$ are shaped very nicely will quickly become computationally intractable to maximise as the number of observations get large. However, this is almost the problem formulation that the Expectation Maximization algorithm is designed to find approximate solutions to.
+
+\subsection{EM for non-partitioning observation spaces}
+Using the expectation maximization method we look at maximizing the log-likelihood for the observations $L(O,\pi,\phi)$, which becomes $L(O,\pi,\phi)=\sum \log (\sum \phi_{ji}^{s_i}\pi_i)$, and by calling the complete parameter set $\theta = (\pi, \phi)$ in the expectation step we get the expression 
+\begin{equation*}
+\begin{split}
+Q(\theta,\theta_{t-1})%&=\sum_{X\in O} E_{\theta_{t-1}}\left ( L(Y,\theta) | X \right )\\
+&=E_{\theta_{t-1}}\left ( L(C,\theta) | O \right )\\
+&= \sum_{n=1}^K \sum_{j=1}^N
+L(X_n, y_j,\theta)
+P(y_j|X,\theta_{t-1})\\
+&= \sum_{n=1}^K \sum_{j=1}^N
+L(X_n,y_j,\theta)
+\frac{P(X_n|y_j,\theta_{t-1})P(y_j,\theta_{t-1})}
+{P(X_n|\theta_{t-1})}\\
+&= \sum_{n=1}^K \sum_{j=1}^N
+L(X_n, y_j,\theta)
+\frac{P(X_n|y_j,\theta_{t-1})P(y_j,\theta_{t-1})}
+{\sum_{k:(X_n,y_k)\in D_{s(n)}}P(X_n|Y,\theta_{t-1})P(Y,\theta_{t-1})}\\
+&= \sum_{s \in S} \sum_{i=1}^{N_s} \sum_{j=1}^M
+L(X_n,y_j,\pi,\phi)
+\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+{\sum_{k:(X_n,y_k)\in D_{s(n)}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}\\
+&= \sum_{s \in S} \sum_{i=1}^{N_s} \sum_{j=1}^M
+(\log(\phi_{sij}) + \log(\pi_j))
+\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+{\sum_{k:(X_n,y_k)\in D_{s(n)}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
+\end{split}
+\end{equation*}
+For the maximization stem we can maximize each of the parameter subsets: $\pi$, $\phi_{s.j}$ separately as they only occur in separate terms and have no interdependent constraints.
+\begin{equation*}
+\begin{split}
+\pi^t &= \argmax_{\pi}
+\sum_{j=1}^N\log(\pi_j) \sum_{s \in S} \sum_{i=1}^{M_s}
+\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}{\sum_{k:(X_n,y_k)\in D_{s(n)}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
+, \sum_j\pi_j = 1\\
+\phi_{s.j}^t &= \argmax_{\phi_{s.j}} \sum_{i: x_i\in W^s}
+\log(\phi_{sij})
+\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+{\sum_{k:(X_n,y_k)\in D_{s(n)}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
+, \sum_{i=1}^{M_s} \phi_{sij} = 1
+\end{split}
+\end{equation*}
+We see that we have ``expected counts'' $\hat c^t_{sij}$ for the number of observations with the complete information $(x_i,y_j,s)$ that we can denote as:
+\begin{equation*}
+\hat c^t_{sij} = \frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}{\sum_{k: y_k \in F}\phi^{t-1}_{sik}\pi^{t-1}_{k}} = c_{si}P(Y=y_j|X=x_i,s,\pi, \phi)
+\end{equation*}
+
+Applying lagrange multipliers and setting derivative to zero gives:
+\begin{equation*}
+\begin{split}
+\pi^t_j &= \frac{\sum_{s,i}\hat c^t_{sij}}
+{\sum_{s,i,j} \hat c^t_{sij}}
+= \sum_{s,i}\frac{\hat c^t_{sij}}
+{N}\\
+\phi_{sij}^t &= 
+\frac{\hat c^t_{sij}}
+{\sum_{i} \hat c^t_{sij}}.
+\end{split}
+\end{equation*}
+Although at first sight calculating these updates might seem to have a time complexity of $O(N*M)$, if we through a knowledge based source, such as a dictionary, can put constraints on the probabilities $\phi$ in a way such that most elements will be zero, we can in fact get the time complexity down to $O(kN)$ where $k$ is the maximal number of possible words one functions might linearize to.
+
+\section{Parsing and preprocessing}
