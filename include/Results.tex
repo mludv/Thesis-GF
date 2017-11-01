@@ -1,6 +1,83 @@
 % CREATED BY DAVID FRISK, 2016
 \chapter{Results}
-Describe you results. Use tables, diagrams etc. for illustration.
-\section{Evaluation methods}
+
+In this section we will describe the evaluation methods and how our model performs on them.
+The problem with unsupervised methods like ours that there is no good standardized tests to use in order to evaluate performance. Therefore, we constructed a small test set of example sentences, several where the GF parser is known to perform badly. One such sentence is ``I work at the bank'' where the GF parser have troubles disambiguating between ``work'' in the sense of laboring and in the sense of functioning.
+
+As another evaluation we decided to test the sense disambiguation subtask of our problem. Here we can use a larger dataset of sense tagged data and we can thus design a quantitative evaluation task for our method. Here we decided to use a  \citep{pasini2017trainomatic}, an automatically generated dataset with high quality sensed tagged data.
+
+
 \section{GF treebank and test sentences}
-\section{Trainomatic data}
+In order to develop a small test set of sentences for qualitative evaluation, we utilized the GF gold tree database which contains a small number of trees tagged correctly. Using these we constructed a list of simple sentences where the GF parser struggled. For the full list of sentences, see appendix \ref{apx:sentences}
+
+The top parsing results from the sentence ``he works at the bank'' can be seen in table \ref{tab:worksbank}. This sentence contains two ambiguous words: \emph{work} can mean to labor or to function, \emph{bank} can be the river bank and the institution. We can see that our model correctly is able to determine that the probability that ``he works'' as in earn his living is much more probable than ``he works'' in the sense that a machine is functioning. The model has more problems with disambiguating between the different senses of \emph{bank} though, which can be traced to the sparseness of these expressions in the dataset.
+
+\begin{table}[htbp]
+\centering
+\caption{The complete phrases that the GF parser generate for the phrase ``he works at the bank''. The numbers are the negative log probabilities from the GF parser and from our reranking. We can see that our model successfully assigns a high probability to \emph{laboring} as opposed to \emph{is functioning} at a bank.}
+\label{tab:worksbank}
+\begin{tabular}{lll}
+\multicolumn{3}{l}{``He works at the bank''}\\
+\textbf{GF parser} & \textbf{Rerank} & \textbf{Interpretation}\\
+26.398 & 16.542 & he \emph{labors} at the \emph{bank institution}  \\
+26.398 & 45.383 & he \emph{functions} at the \emph{bank institution}\\
+29.458 & 16.802 & he \emph{labors} at the \emph{river bank} \\
+29.458 & 37.562 & he \emph{functions} at the \emph{river bank}   
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Total number of successful rankings of trees by the GF parser and our reranking model.  A ranking counts as a success if there is no false trees that get a higher probability than the real tree and if not the other parser performs better, that is, if one of the methods has assigned the same probability to a large set of trees while the other assigns it to only a correct subset of this set, then only the latter counts as a success.}
+\label{tab:results_summary}
+\begin{tabular}{ll}
+\multicolumn{2}{l}{\bf Test sentences}\\
+GF & 21 \\
+Rerank & 36 \\
+Total \# of sentences & 47   
+\end{tabular}
+\end{table}
+
+\section{Wordnet and Trainomatic data}
+In addition to the qualitiative evaluation described in the previous section we also wanted to do a quantitive evaluation. In order to do so it is vital to define a clear testing criteria with a clear right or wrong answer. Because of this we decided to focus on the word sense disambiguation part of the problem. It is important to point out that this is only one part of tree disambiguation.
+
+As a dataset to perform this quantitative evaluation we utilized two datasources: firsly, Wordnet \citep{miller1995wordnet} has a small list of example sentences for its synsets where we, when the lemma has several ambiguous meanings, can try to predict the correct choice of synset while using the Wordnet synset as the gold choice. Secondly, we can use the Trainomatic dataset \citep{pasini2017trainomatic} which is a large automatically tagged set of sentences where one word has been tagged with its wordnet synset. These two resource gives us a large testing dataset and the results can be seen in table \ref{tab:trainomatic}. The evaluation is run on English language data and our model is trained with tree different datasets. The data used is from the CoNLL 2017 shared task \citep{ginter2017conll}. 
+
+The model in the first experiment is trained using parsed data from English, Swedish, Finnish, French, Hindi, Dutch and Bulgarian. In the second experiment we removed English from the training data and trained the model using the other six languages, while in the third experiment we only trained the model using the English data.
+
+Since this model is based on the GF dictionary we can see that we don't have a lot of ambiguity, only about 6.6\% of the sentences has ambiguity in the GF dictionary, this is expected to change as we move to Wordnet as a dictionary.  
+
+\todo{Write more about how success is calculated}
+
+
+\begin{table}[htbp]
+\centering
+\caption{The results for running WSD evaluation on the wordnet example sentences and the Trainomatic data. Using the GF dictionary there is a lot of sentences which are not ambiguous, this is expected to change as we use Wordnet as a dictionary instead.}
+\label{tab:trainomatic}
+\begin{tabular}{lrr}
+\multicolumn{3}{l}{\bf Trainomatic data}\\
+\textbf{Model} & \textbf{Success rate} & \textbf{Increase in sparseness}\\
+\text{7 languages}  & 75\% & -\\
+\text{No English}   & 49\% & 65\%\\
+\text{Only English} & 67\% & 12\%\\ 
+\hline
+Ambiguous sentences & 55 114 \\
+Total \# of sentences & 834 468
+\end{tabular}
+
+\vspace{5mm}
+
+\begin{tabular}{lrr}
+\multicolumn{3}{l}{\bf Wordnet examples}\\
+\textbf{Model} & \textbf{Success rate} & \textbf{Increase in sparseness}\\
+\text{7 languages}  & 72\% & -\\
+\text{No English}   & 42\% & 33\%\\
+\text{Only English} & 66\% & 8\%\\ 
+\hline
+Ambiguous sentences & 739 \\
+Total \# of sentences & 48 247
+
+
+\end{tabular}
+
+\end{table}

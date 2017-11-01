@@ -26,15 +26,16 @@
 	\centering
 	\includegraphics[width=\paperwidth,height=\paperheight,keepaspectratio]{#3}}}}
 \usepackage{float} 									% Enables object position enforcement using [H]
-\usepackage{parskip}								% Enables vertical spaces correctly 
+\usepackage[parfill]{parskip}								% Enables vertical spaces correctly 
 
 
 
 % OPTIONAL SETTINGS (DELETE OR COMMENT TO SUPRESS)
 
 % Disable automatic indentation (equal to using \noindent)
-\setlength{\parindent}{0cm}                         
-
+%\usepackage{parskip}
+%\setlength{\parindent}{0cm}
+\parskip = 2\baselineskip
 
 % Caption settings (aligned left with bold name)
 \usepackage[labelfont=bf, textfont=normal,
@@ -98,5 +99,15 @@
 \DeclareMathOperator*{\argmax}{arg\,max}
 \let\phi\varphi
 
+\usepackage{gb4e} %Linguistic glosses
+\noautomath
 
 
+
+% Custom settings max
+\usepackage[autosize]{dot2texi}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows}
+\usepackage{CJKutf8} % chinese support
+\usepackage{natbib} % bibtex
+\usepackage{longtable}

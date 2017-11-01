@@ -1,3 +1,57 @@
 % CREATED BY DAVID FRISK, 2016
-\chapter{Appendix 1}
-
+\chapter{Appendix}
+\section{Example sentences}
+\label{apx:sentences}
+List of example sentences used for evaluation. The checkmark is present if there is no false trees that get a higher probability than the real tree and if not the other parser performs better, that is, if one of the methods has assigned the same probability to a large set of trees while the other assigns it to only a correct subset of this set, then only the latter gets a checkmark. 
+\begin{longtable}{lll}
+\bf{Sentence} & \bf{GF parser} & \bf{Reranker}\\
+woman that sleeps       & \checkmark            & \checkmark \\
+woman who sleeps        &                       & \checkmark \\
+woman who sleeps here   &                       & \checkmark \\
+woman that sleeps here  & \checkmark            & \checkmark \\
+woman who is old        &                       & \checkmark \\
+woman that is old       & \checkmark            & \checkmark \\
+whom does she see       & \checkmark            & \checkmark \\
+because she sleeps      & \checkmark            & \checkmark \\
+between you and me      & \checkmark            & \checkmark \\
+both here and there     & \checkmark            & \checkmark \\
+he works at the bank    &                       & \checkmark \\
+he works every day      &                       & \checkmark \\
+she works with many people & \checkmark         & \checkmark \\
+my computer works perfectly &                   & \checkmark \\
+my computer works           &                   & \checkmark \\
+my computer doesn't work    &                   & \checkmark \\
+I like sleep            & \checkmark            & \\
+I am sleeping           &                       & \checkmark \\
+I am working            &                       & \checkmark \\
+he is working           & \checkmark            & \checkmark \\
+she is a little girl    &                       & \\
+she is a girl           & \checkmark            & \checkmark \\
+I play football         &                       & \checkmark \\
+he plays the trumpet    & \checkmark            & \checkmark \\
+the child plays with a doll     &               & \checkmark \\
+the children play in the park   &               & \checkmark \\
+the play is over soon           & \checkmark    & \checkmark \\
+I went to school this morning   &               & \\
+he is in the cooking area       &               & \\
+area of the circle is small     & \checkmark    & \checkmark \\
+fire the canons                 &               & \\
+the work is considered canon    &               & \\
+you are in good company         & \checkmark    & \checkmark \\
+this is company business        &               & \checkmark \\
+what is the date today?         & \checkmark    & \checkmark \\
+to go on a date                 &               & \\
+he ate a date                   &               & \checkmark \\
+the future is uncertain         & \checkmark    & \checkmark \\
+investing in futures is risky   &               & \\
+you need to lie down            &               & \checkmark \\
+do not tell lies                & \checkmark    & \checkmark \\
+submit the application          &               & \\
+the applications of this theory are numerous & \checkmark & \checkmark \\
+he uses an application on his computer  & \checkmark & \\
+my arm hurts                            &       & \checkmark \\
+the right to bear arms is important     &       & \checkmark \\
+visiting relatives can be boring        & \checkmark & \\
+\hline
+\textbf{total out of 47 sentences:}  & 21 & 36
+\end{longtable}

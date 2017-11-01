@@ -1,15 +1,55 @@
 % CREATED BY DAVID FRISK, 2016
 \chapter{Methods}
-\section{Defining tree probabilities}
-\todo{We must describe the probability model in the following aspects:}
-We have a correspondence GF2UD, how does probabilities of UD trees generalize to GF trees.\\
-How do we define probabilities on UD trees by only looking at probabilities of sub trees.\\
-We can decide to only look at some information such as only lemma and part of speech.\\
-How do we combine our probabilities with current parser probabilities
+
+\section{Tree probabilities}
+The tree disambiguation model proposed works by assigning a probability score to each possible abstract syntax tree. In this section the method for defining such probability scores is further described.\\
+The main problem in estimating scores for trees is sparseness of data and the massive size of the space of possible trees, we will simply not be able to observe every possible AST enough times to be able to predict frequency of occurrence for arbitrary AST:s. To work around this problem we will need to make certain assumptions of the distribution of AST:s in order to reduce the amount of parameters that needs to be estimated. One such approach is the context free probability model, which states that the occurence of each constituent part of a tree is independent from occurence of all other constituent parts of the tree. While such an assumption means that it is only necessary to estimate the frequency of each individual constituent part it also means that much information present in available data is likely discarded, and certain patterns in the data is not accounted for. 
+\\
+The method used to assign probabilities to AST:s can be viewed as a lexical context based model. That we call it lexical context based is because the model assigns probabilities to every lexical item in the AST, and those probabilities are dependent on a syntactic neighborhood of the item. In the process of converting an AST to an UD tree with the method described in \citep{kolachina2016gf2ud} we obtain an abstract dependency tree, that is a dependency tree mapped with UD dependency labels over the GF terminal functions. The syntactic neighborhoods used to condition probabilities on are defined in terms of the abstract UD dependency tree corresponding to the AST. For example we can condition the probability of each lexical item on its parent in the dependency tree. This approach although very mildly context based in the UD realm will capture potentially quite long range context dependencies in the AST realm. The advantages of using this approach is that this allows the use of the many high quality UD-parsers available to generate training data to estimate parameters for the model, through the use of unsupervised methods like the EM algorithm to overcome the ambiguity resulting in going from a parsed UD tree to an abstract UD tree.
+
+\subsection{Defining a probabilistic model for AST:s}
+A way to define a probabilistic model of abstract syntax trees is to first define a deterministic way to traverse the nodes of a tree in order to be able to index them in a well defined way. Having such an indexing scheme means that we can represent each tree $T$ as a set of tuples $T=\{L_j, j, H_j\}_{j=0}^n$ where $L_j$ is the label or the function of node $j$ and $H_j$ is the index of the parent of node $j$. If we denote the tuple $(L_j, j, H_j) = N_j$ we can write the tree $T=\{N_j\}_{j=0}^n$. We can now define a probability space over the group of sets of tuples that are equivalent to legal trees. By assuming that the set of possible node labels is finite and that the size of the tree $n<S$ for some integer $M$ this probability space will be finite. We can rewrite the probability in the following way with the help of the chain rule for conditional independence
+\begin{equation}
+\begin{split}
+    P(T=\{N_j\}_{j=0}^n) & = P(\{N_j\}_{j=0}^n \subseteq T, |T|=n)\\
+    %& = P(N_n\in T | \{N_j\}_{j=0}^{n-1}\subseteq T, |T|=n) P(\{N_j\}_{j=0}^{n-1}\subseteq T, |T|=n) \\
+    & = \prod_{i=0}^{n} P(N_i\in T | \{N_j\}_{j=0}^{i-1}\subseteq T, |T|=n)P(|T|=n)
+\end{split}
+\end{equation}
+We have factorized the probability of the tree into the probabilities of every tuple being a member of the tree conditioned on the event that all tuples with an index lower than that tuple is present in the tree. In order to mitigate the effect of sparsity of data we can now approximate these conditional probabilities with the probability conditioned on only a subset of the tuples preceding each tuple. For example if we define the traversal order of the indexing such that the parent of a node always occurs before its children, we can make the following approximation:
+
+\begin{equation*}
+P(N_i\in T | \{N_j\}_{j=0}^{i-1}\subseteq T, |T|=n) \approx 
+P(N_i\in T | f_T(N_i) \subseteq T, |T|=n) ,
+\end{equation*}
+where $f_T$ is a mapping from a node in the tree to a subset of the nodes with an index lower than that node. This is the same thing as saying that we assume that the occurence of node $N_j$ in the tree and the occurence of any of the nodes not in $f(N_i)$ is independent.
+We can further approximate these probabilities by assuming independence between the label of a node, the value of the index of that node and the indicies of the nodes in $f(N_i)$ and their parents, which would mean that  
+\begin{equation*}
+P(N_i\in T | N_{H_j} \in T, |T|=n) = g(L_i, \text{Label} (N):N\in f_T(N_i), |T|),
+\end{equation*}
+where $g$ only depends of the node labels of the node $N_i$ and the nodes in the set $f(N_i)$, which gives us the tree probabilities: 
+
+\begin{equation*}
+    P(T=\{N_j\}_{j=0}^n) \approx P(N_0\in T) \prod_{i=1}^{n}g(L_i, \text{Label} (N):N\in f_T(N_i), |T|),
+\end{equation*}
+where $N_0$ will be the root node. The function $g$ can now be estimated from available data such as treebanks by for every node $N$ in the data set calculate $f_T(N)$. The way this estimation can be done is further described in section X. 
+\subsection{Using GF2UD to define context}
+This function $f_T$ can be seen as the function deciding what kind of context the model will take into account. For example it can be noted that by choosing $f_T$ to be the constant mapping to the empty set the model will be reduced to a completely context free model. If we take more nodes into account the model will be able to take more context into account when assigning a probability score for a tree, but this also comes at a cost. The more nodes taken into account by the context function, the harder it will be to estimate. It is therefore very important to define the context function in a clever way in order to only capture the contextual information that are the most useful to determine weather a tree is probable or not.
+A way to chose the context function $f_T$ for the model is through the use of the GF-function tagged abstract UD dependency trees generated by the mapping from GF to UD described in \citep{kolachina2016gf2ud}. This gives us a new tree structure over only the terminal nodes of the AST, and we can now define the context function $f_T$ for the terminal symbols in terms of the abstract dependency tree in the same way as described in the previous section by defining an order of traversal for indexing of the dependency tree. If we define the order of traversal for indexing of the AST in a way that preserves the ordering of the abstract dependency tree, we can even use such a model for the terminal nodes together with a model for the non terminal nodes.
+
+
+
+
+
+%\todo{We must describe the probability model in the following aspects:}
+%We have a correspondence GF2UD, how does probabilities of UD trees generalize to GF trees.\\
+%How do we define probabilities on UD trees by only looking at probabilities of sub trees.\\
+%We can decide to only look at some information such as only lemma and part of speech.\\
+%How do we combine our probabilities with current parser probabilities
 \section{Parameter estimation}
-The core of the developed method is the parameter estimation. The estimation is done from large amount of textual data deemed to be representative for the type of texts the model is supposed to describe. The main problem in estimating the parameters is that while the model describes properties of the unambiguous abstract trees we do not have a large amount of abstract syntax that could be used for estimation, we only have ambiguous text indifferent languages where the complete syntax trees are unknown.
+The core of the developed method is the parameter estimation. The estimation is done from large amount of textual data deemed to be representative for the type of texts the model is supposed to describe. The main problem in estimating the parameters is that while the model describes properties of the unambiguous abstract dependency trees we do not have a large amount of data of abstract trees that could be used for estimation, we only have ambiguous text or normal dependency trees in different languages where the complete abstract functions are unknown. However with the use of knowledge based resources such as dictionaries and wordnets we can identify what ambiguities there are and use unsupervised methods like the Expectation Maximization method to overcome this problem.
 \subsection{Problem Formulation}
-The probability model used need to estimate the frequency of certain sub-trees occurring in the function tagged dependency trees of the type of text modelled. The function tagged dependency trees of a sentence is unknown, but if we have the dependency trees of every sentence and a list of possible function tags for each node in the dependency tree we can treat the function tagged sub-tree as latent information that can be marginalized in a maximum likelihood estimation using for example expectation maximization.
+The probability model used need to estimate the frequency of certain sub-trees occurring in the abstract dependency trees of the type of text modelled. The abstract dependency trees of a sentence is unknown, but if we have the dependency trees of each sentence and a list of possible function tags for each node in a dependency tree we can treat the function tagged sub-trees as latent information that can be marginalized in a maximum likelihood estimation using for example expectation maximization.
 \subsubsection{Structure of data and variables}
 Consider one observation of a dependency sub-tree $X$ and denote as $Y$ the function tagged sub-tree. The dependency sub-tree $X$ is assumed to be known and readily available while the function tagged sub-tree $Y$ is assumed to be unknown. We assume that the space of all possible function tagged sub trees is known and finite and we denote it $F=\{y_i\}_{i=1}^N$. The space of possible untagged subtrees will depend on the language of the observed sentence, and the space of possible untagged subtrees for each language $s$ is also assumed to be known and finite and is denoted $W_s=\{x_{si}\}_{i=1}^M$. Lastly we also assume that we for each language have knowledge of a \emph{possibility space} $D_s\subseteq W_s \times F$, where $(x_{si},y_j)\in D_s$ if and only if $y_j$ is a possible function tagged subtree given the untagged subtree $x_{si}$. The simplest example of a space of possible function tagged subtrees is the space of all tagged subtrees of size one, that is simply all possible functions which for example could be defined to be all GF-functions in a certain dictionary file. The space of  and the observation space $W$ being a set consisting of one element for every word that could be a linearization of any of the GF-functions in $F$ and be the set of all functions that could linearize to that word, remember that $W$ is a set of subsets of $F$.
 \subsubsection{Probabilistic model and parameter estimation}
@@ -35,7 +75,7 @@ P(O | \pi, \phi) = \prod_{n=1}^K P(X=x_{j(n)} |\pi, \phi) = \prod_{n=1}^K \sum_{
 \end{equation*}
 which unless the spaces $D_s$ are shaped very nicely will quickly become computationally intractable to maximise as the number of observations get large. However, this is almost the problem formulation that the Expectation Maximization algorithm is designed to find approximate solutions to.
 
-\subsection{EM for non-partitioning observation spaces}
+\subsection{Applying the Expectation Maximization method}
 Using the expectation maximization method we look at maximizing the log-likelihood for the observations $L(O,\pi,\phi)$, which becomes $L(O,\pi,\phi)=\sum \log (\sum \phi_{ji}^{s_i}\pi_i)$, and by calling the complete parameter set $\theta = (\pi, \phi)$ in the expectation step we get the expression 
 \begin{equation*}
 \begin{split}
@@ -44,43 +84,61 @@ Q(\theta,\theta_{t-1})%&=\sum_{X\in O} E_{\theta_{t-1}}\left ( L(Y,\theta) | X \
 &= \sum_{n=1}^K \sum_{j=1}^N
 L(X_n, y_j,\theta)
 P(y_j|X,\theta_{t-1})\\
-&= \sum_{n=1}^K \sum_{j=1}^N
-L(X_n,y_j,\theta)
-\frac{P(X_n|y_j,\theta_{t-1})P(y_j,\theta_{t-1})}
-{P(X_n|\theta_{t-1})}\\
-&= \sum_{n=1}^K \sum_{j=1}^N
-L(X_n, y_j,\theta)
-\frac{P(X_n|y_j,\theta_{t-1})P(y_j,\theta_{t-1})}
-{\sum_{k:(X_n,y_k)\in D_{s(n)}}P(X_n|Y,\theta_{t-1})P(Y,\theta_{t-1})}\\
-&= \sum_{s \in S} \sum_{i=1}^{N_s} \sum_{j=1}^M
-L(X_n,y_j,\pi,\phi)
-\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
-{\sum_{k:(X_n,y_k)\in D_{s(n)}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}\\
-&= \sum_{s \in S} \sum_{i=1}^{N_s} \sum_{j=1}^M
+&= \sum_{s \in S} \sum_{i=1}^{N_s} \sum_{j=1}^M 
+L(x_i,y_j,\pi,\phi)
+c_{si}P(y_j|x_i,\theta_{t-1})\\
+&= \sum_{s \in S} \sum_{i=1}^{N_s} \sum_{j=1}^M 
 (\log(\phi_{sij}) + \log(\pi_j))
-\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
-{\sum_{k:(X_n,y_k)\in D_{s(n)}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
+c_{si}P(y_j|x_i,\theta_{t-1}),
 \end{split}
 \end{equation*}
-For the maximization stem we can maximize each of the parameter subsets: $\pi$, $\phi_{s.j}$ separately as they only occur in separate terms and have no interdependent constraints.
+where $c_{si}$ denotes the amount of observations of the form $(x_i,s)$. By rewriting the conditional probability of $y_i$ given $x_i$ in terms of the parameters in our model
+\begin{equation*}
+\begin{split}
+P(y_j|x_i,\theta_{t-1})
+%&=\frac{P(x_i|y_j,\theta_{t-1})P(y_j,\theta_{t-1})}{P(x_i|\theta_{t-1})}\\
+&=\frac{P(x_i|y_j,\theta_{t-1})P(y_j,\theta_{t-1})}
+{\sum_{k:(x_i,y_k)\in D_s}P(x_i|y_k,\theta_{t-1})P(y_k,\theta_{t-1})}\\
+&=\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+{\sum_{k:(X_n,y_k)\in D_{s}}\phi^{t-1}_{ik}\pi^{t-1}_{k}},
+\end{split}
+\end{equation*}
+and denote the expected counts for the complete information at iteration $t$ as 
+\begin{equation*}
+\hat c^t_{sij} = \frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}{\sum_{k: y_k \in F}\phi^{t-1}_{sik}\pi^{t-1}_{k}} = c_{si}P(Y=y_j|X=x_i,s,\pi^{t-1}, \phi^{t-1})
+\end{equation*}
+for all $s,i,j$ such that $(x_i,y_j)\in D_s$ we see that we can write the expectated value of the log likelihood in the expectation step as:
+\begin{equation*}
+Q(\theta,\theta^{t-1})=\sum_j\log(\pi_j)\sum_{s,i}\hat c^t_{sij} + \sum_{sij}\log(\phi_{sij})\hat c^t_{sij},
+\end{equation*}
+where the sums are all taken with respect to the spaces $D_s$ that is such that $\hat c^{t}_{sij}$ is defined.
+%&= \sum_{n=1}^K \sum_{j=1}^N
+%L(x_i,y_j,\theta)
+%\frac{P(X_n|y_j,\theta_{t-1})P(y_j,\theta_{t-1})}
+%{P(X_n|\theta_{t-1})}\\
+%&= \sum_{n=1}^K \sum_{j=1}^N
+%L(X_n, y_j,\theta)
+%\frac{P(X_n|y_j,\theta_{t-1})P(y_j,\theta_{t-1})}
+%{\sum_{k:(X_n,y_k)\in D_{s(n)}}P(X_n|Y,\theta_{t-1})P(Y,\theta_{t-1})}\\
+%&= \sum_{s \in S} \sum_{i=1}^{N_s} \sum_{j=1}^M
+%L(X_n,y_j,\pi,\phi)
+%\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+%{\sum_{k:(X_n,y_k)\in D_{s}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}\\
+%&= \sum_{s \in S} \sum_{i=1}^{N_s} \sum_{j=1}^M
+%(\log(\phi_{sij}) + \log(\pi_j))
+%\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
+%{\sum_{k:(X_n,y_k)\in D_{s}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
+%\end{split}
+%\end{equation*}
+For the maximization step we can maximize each of the parameter subsets: $\pi$ and $\phi_{s.j}$ separately as they only occur in separate terms and have no interdependent constraints.
 \begin{equation*}
 \begin{split}
 \pi^t &= \argmax_{\pi}
-\sum_{j=1}^N\log(\pi_j) \sum_{s \in S} \sum_{i=1}^{M_s}
-\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}{\sum_{k:(X_n,y_k)\in D_{s(n)}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
-, \sum_j\pi_j = 1\\
-\phi_{s.j}^t &= \argmax_{\phi_{s.j}} \sum_{i: x_i\in W^s}
-\log(\phi_{sij})
-\frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}
-{\sum_{k:(X_n,y_k)\in D_{s(n)}}\phi^{t-1}_{ik}\pi^{t-1}_{k}}
-, \sum_{i=1}^{M_s} \phi_{sij} = 1
+\sum_j\log(\pi_j)\sum_{s,i}\hat c^t_{sij}, \sum_j\pi_j = 1\\
+\phi_{s.j}^t &= \argmax_{\phi_{s.j}} \sum_i
+\log(\phi_{sij})\hat c^t_{sij}, \sum_i \phi_{sij} = 1
 \end{split}
 \end{equation*}
-We see that we have ``expected counts'' $\hat c^t_{sij}$ for the number of observations with the complete information $(x_i,y_j,s)$ that we can denote as:
-\begin{equation*}
-\hat c^t_{sij} = \frac{c_{si}\phi^{t-1}_{sij}\pi^{t-1}_{j}}{\sum_{k: y_k \in F}\phi^{t-1}_{sik}\pi^{t-1}_{k}} = c_{si}P(Y=y_j|X=x_i,s,\pi, \phi)
-\end{equation*}
-
 Applying lagrange multipliers and setting derivative to zero gives:
 \begin{equation*}
 \begin{split}
@@ -90,9 +148,10 @@ Applying lagrange multipliers and setting derivative to zero gives:
 {N}\\
 \phi_{sij}^t &= 
 \frac{\hat c^t_{sij}}
-{\sum_{i} \hat c^t_{sij}}.
+{\sum_{i} \hat c^t_{sij}},
 \end{split}
 \end{equation*}
-Although at first sight calculating these updates might seem to have a time complexity of $O(N*M)$, if we through a knowledge based source, such as a dictionary, can put constraints on the probabilities $\phi$ in a way such that most elements will be zero, we can in fact get the time complexity down to $O(kN)$ where $k$ is the maximal number of possible words one functions might linearize to.
+again with the sums taken only over terms such that $\hat c^t_{sij}$ is defined.
+Note that the computational complexity of updating the probabilities will depend on the size of the spaces of the possible function tagged sub trees and the possible untagged sub trees but most importantly of the space of possible combinations of these, that is the spaces $D_s$. If this space would be choosen to be the full product spaces $W_s \times F$ the computational complexity would be of the order $O(|S|*|F|*|W|)$, while if we use a knowledge based source, such as a dictionary to prune the space of possible combinations, we reduce the complexity to down to $O(k*|S|*|F|)$ where $k$ is the average number of possible untagged subtrees that can be paired with each function tagged sub-tree.
 
 \section{Parsing and preprocessing}

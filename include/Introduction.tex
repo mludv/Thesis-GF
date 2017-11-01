@@ -1,17 +1,51 @@
 % CREATED BY DAVID FRISK, 2016
 \chapter{Introduction}
 
+Parsing natural language is the process of breaking down a sentence in natural language to its parts and to map the results onto some kind of grammar. Since human language is full of ambiguity in even simple examples
+
+
+
+
 \todo{Add quick introduction to NLP, different parsing methods, applications and motivation for those applications}
 
-\emph{Grammatical Framework} (GF) is a comprehensive system that can be used to define both language independent abstract grammars and language dependent concrete implementations of those grammars for multiple languages. It includes a method to \emph{parse} strings from the implemented languages with respect the grammars into \emph{abstract syntax trees}, a method to \emph{linearize} abstract syntax trees back into normal text in an implemented language, as well as a standard library implementing general grammars for 30 languages. An abstract syntax tree is a structured representation of a sentence in one of the implemented languages and carries information of the meaning of the sentence and its constituent parts. The main property of the abstract syntax trees used in GF are that they are not necessarily language dependent, which means that one and the same abstract syntax tree can represent sentences in several different languages where these sentences all have the same meaning. Applications include machine translation, word sense disambiguation and text generation.
-% är verkligen word sense disambiguation en application?
-\\
+\emph{Grammatical Framework} (GF) is a comprehensive system that can be used to define both language independent abstract grammars and language dependent concrete implementations of those grammars for multiple languages. It includes a method to \emph{parse} strings from the implemented languages with respect the grammars into \emph{abstract syntax trees}, a method to \emph{linearize} abstract syntax trees back into normal text in an i mplemented language, as well as a standard library implementing general grammars for 30 languages. An abstract syntax tree is a structured representation of a sentence in one of the implemented languages and carries information of the meaning of the sentence and its constituent parts. The main property of the abstract syntax trees used in GF are that they are not necessarily unique to one language, but one and the same abstract syntax tree can represent sentences in several different languages where these sentences all carry the same meaning. Applications include machine translation, word sense disambiguation and text generation.
 
-In GF machine translation, the task to automatically transform a string from one language into a string of the same meaning in another language, is a capability that can be considered as built in. As the grammars implemented by the GF standard library all generate the same type of abstract syntax trees the abstract syntax trees constitute a form of interlingua. A sentence in one language can be parsed and the resulting abstract syntax tree can then be linearized back into normal text using another GF-supported language, since both parsing and linearization preserve the underlying meaning the resulting string will carry the same meaning as the original string.
-% Machine translation can therefore be considered a build in capability of GF.
-\\
+A notable application of GF is machine translation, the task to automatically transform a string from one language into a string of the same meaning in another language. As the grammars implemented by the GF standard library all generate the same type of abstract syntax trees the abstract syntax trees constitute a form of interlingua and translation can be done simply by parsing a sentence in one language and linearizing the resulting abstract syntax tree to another language. Since both parsing and linearization preserve the underlying meaning the resulting string will carry the same meaning as the original string. 
+%Machine translation can therefore be considered a build in capability of GF.
 
-A big problem when parsing text from a language into an abstract syntax tree is ambiguity. While natural language in many ways are highly ambiguous, abstract syntax trees must do away with much of this ambiguity in order to be be language independent. As a simple example of ambiguity in natural language the word ``bass'' might refer to a type of fish in one sentence (``I am fishing bass'') and to a type of instrument in another (``I play the bass''). In theory both interpretations of the word are valid in both the given example sentences (if using ones imagination), but in practice only one of the interpretations is likely to occur in normal text. Another example is the sentence ``I eat the food in the kitchen'', where the clause ``in the kitchen'' could potentially refer both to the location where the eating is done and as an attribute to the food that was eaten (``I am in the kitchen and eat the food'' or ``I eat the food that is in the kitchen''). The problem of disambiguating the ambiguous word ``bass'' might be seen as a problem of \emph{word sense disambiguation}. In Grammatical Framework, the problem of word sense disambiguation can be considered both as a vital subproblem of syntax tree disambiguation as well as an application in that the word sense information for each word of a sentence must be present in the correct abstract syntax tree of the sentence in order for it to be a truly language independent representation of the meaning of the sentence. For example the word ``bass'' translated to Swedish would be ``aborre'' when referring to the fish, but ``bas'' when referring to the instrument, while the Swedish word ``bas'' could potentially also mean ``base'' as in a military base, thus these underlying meanings of each of these words in a particular sentence must somehow be disambiguated when parsing the abstract syntax tree. 
+
+\section{Problem}
+A big problem when parsing text from a language into an abstract syntax tree is ambiguity. While natural language in many ways are highly ambiguous, abstract syntax trees must do away with much of this ambiguity in order to be be language independent. As a simple example of ambiguity in natural language the word ``bass'' might refer to a type of fish in one sentence (``I am fishing bass'') and to a type of instrument in another (``I play the bass''). Since in for example Swedish the word for the fish bass and the instrument bass are different (aborre vs. bass) which means that in order that for example the tree for the sentence ("I have a bass") must be different depending on if one is referring to the fish or the instrument. Another example is the sentence ``I eat the food in the kitchen'', where the clause ``in the kitchen'' could potentially refer either to the location where the eating is done or as an attribute to the food that was eaten (``I am in the kitchen and I eat the food'' or ``I eat the food that is in the kitchen''), depending on the intended meaning, this sentence would be translated differently into Chinese, as can be seen below.
+
+% Enable Chinese input
+\begin{CJK*}{UTF8}{gbsn}
+\begin{exe}
+\label{eat_food_example}
+\ex 
+\glll 我 在 厨房 吃 饭\\
+wo zai chufang chi fan\\
+I in kitchen eat food.\\
+\trans `I eat the food in the kitchen'
+\ex 
+\glll 我 吃 在 厨房 的 饭\\
+wo chi zai chufang de fan\\
+I eat in kitchen [attributive] food\\
+\trans `I eat the food in the kitchen'
+\end{exe}
+\end{CJK*}
+
+The problem of disambiguating the ambiguous word ``bass'' might be seen as a problem of \emph{word sense disambiguation}, while the example of eating food is an example of syntactic ambiguity. In Grammatical Framework, the problem of disambiguating abstract syntax trees includes both word sense disambiguation and syntactic disambiguation in that the word sense information for each word of a sentence must be present in the correct abstract syntax tree of the sentence in order for it to be a truly language independent representation of the meaning of the sentence.
+
+
+The problem of disambiguating syntactic and lexical ambiguities can largely be divided into two general approaches, corpus based methods and knowledge based methods. Corpus based approaches are based on one defining a probabilistic model using large amount of data such as corpora and treebanks to estimate parameters, while knowledge based method uses precompiled structural sources of data such as dictionaries, thesauri or WordNets to fit an appropriate model. 
+
+
 
 \section{Aim}
 The aim of this project is to find a probabilistic disambiguation model for abstract syntax trees able to take contextual information into account as well as a way to estimate parameters for that model. As the abstract syntax trees are language independent the model needs to be language independent and should not be biased towards one particular language. The model and a method to estimate its parameters will be implemented and tested in practice in order to measure its efficiency. To measure the effectiveness of the proposed model we will re-rank trees produced by the current GF-parser according to their probability in the proposed model and measure any increase in performance of a set of applied tasks, such as how well senses of individual words are disambiguated as compared to manually sense-tagged text. Another applied evaluation task will be to measure the performance of the model to correctly predict the occurrence of the definite/indefinite article in translation between Chinese and English, as Chinese grammar does not always distinguish between the two.
+
+
+%\section{Motivation}
+%Parsing\\
+%Problems with current method: similar/comparable to PCFG, poor in context and lexical understanding
+%Tends to do poorly in choosing right sense for word, choosing the right object for verb etc.

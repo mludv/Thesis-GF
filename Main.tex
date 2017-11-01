@@ -3,35 +3,36 @@
 % IMPORT SETTINGS
 \documentclass[12pt,a4paper,twoside,openright]{report}
 \input{include/settings/Settings}
-
 \begin{document} 
 
+
+
 % COVER PAGE, TITLE PAGE AND IMPRINT PAGE
-\pagenumbering{roman}			% Roman numbering (starting with i (one)) until first main chapter
+%\pagenumbering{roman}			% Roman numbering (starting with i (one)) until first main chapter
 \input{include/frontmatter/Titlepage}
 
 % ABSTRACT
-\newpage
-\input{include/frontmatter/Abstract}
+%\newpage
+%\input{include/frontmatter/Abstract}
 
 % ACKNOWLEDGEMENTS
-\newpage
-\input{include/frontmatter/Acknowledgements}
+%\newpage
+%\input{include/frontmatter/Acknowledgements}
 
 
 % TABLE OF CONTENTS
-\newpage
+%\newpage
 \tableofcontents
 
 % OTHER FRONTMATTER
 % List of figures (add to table of contents)
-\cleardoublepage
-\addcontentsline{toc}{chapter}{\listfigurename} 
-\listoffigures
+%\cleardoublepage
+%\addcontentsline{toc}{chapter}{\listfigurename} 
+%\listoffigures
 % List of tables (add to table of contents)
-\cleardoublepage
-\addcontentsline{toc}{chapter}{\listtablename}  
-\listoftables
+%\cleardoublepage
+%\addcontentsline{toc}{chapter}{\listtablename}  
+%\listoftables
 
 
 % START OF MAIN DOCUMENT
@@ -67,6 +68,5 @@
 \pagenumbering{Roman}			% Capitalized roman numbering starting from I (one)
 
 \input{include/backmatter/Appendix_1}
-
 
 \end{document}
