@@ -1,51 +1,55 @@
-% CREATED BY DAVID FRISK, 2016
 \chapter{Introduction}
+\label{chapter:introduction}
 
-Parsing natural language is the process of breaking down a sentence in natural language to its parts and to map the results onto some kind of grammar. Since human language is full of ambiguity in even simple examples
-
-
-
-
-\todo{Add quick introduction to NLP, different parsing methods, applications and motivation for those applications}
-
-\emph{Grammatical Framework} (GF) is a comprehensive system that can be used to define both language independent abstract grammars and language dependent concrete implementations of those grammars for multiple languages. It includes a method to \emph{parse} strings from the implemented languages with respect the grammars into \emph{abstract syntax trees}, a method to \emph{linearize} abstract syntax trees back into normal text in an i mplemented language, as well as a standard library implementing general grammars for 30 languages. An abstract syntax tree is a structured representation of a sentence in one of the implemented languages and carries information of the meaning of the sentence and its constituent parts. The main property of the abstract syntax trees used in GF are that they are not necessarily unique to one language, but one and the same abstract syntax tree can represent sentences in several different languages where these sentences all carry the same meaning. Applications include machine translation, word sense disambiguation and text generation.
-
-A notable application of GF is machine translation, the task to automatically transform a string from one language into a string of the same meaning in another language. As the grammars implemented by the GF standard library all generate the same type of abstract syntax trees the abstract syntax trees constitute a form of interlingua and translation can be done simply by parsing a sentence in one language and linearizing the resulting abstract syntax tree to another language. Since both parsing and linearization preserve the underlying meaning the resulting string will carry the same meaning as the original string. 
-%Machine translation can therefore be considered a build in capability of GF.
+% Establish territory
+Ambiguity in language has been studied extensively in the Natural Language Processing community. It is one of the defining trait of human language and also one of the biggest obstacles when it comes to computers understanding language. It naturally also influences many downstream tasks within NLP, such as sentiment analysis, part of speech tagging, and translation.
 
 
+Ambiguity is often used as a vehicle of poetry and humor, to illustrate, this is a quote from the American comedian Groucho Marx: 
+\begin{quoting}
+``One morning I shot an elephant in my pajamas. How he got in my pajamas, I don't know.''
+\end{quoting}
+For a human, this brings up the absurd image of a five tonne elephant wearing Marx's pajamas, but for a computer that doesn't know what an elephant is, an elephant dressed in a pajamas would be a completely valid interpretation. Most examples of ambiguity is solved using context. In the example above the context is clear for a human: an elephant doesn't wear pajamas, but for a computer it's hard to draw this conclusion. For a computer to be able to correctly disambiguate a sentence, context usually enters as some kind of statistical model. For an overview, see \citet[Chapter 14]{jurafsky2009speech}.
+
+% Establish a niche
+\section{Background}
+In this thesis, we will consider Grammatical Framework \citep{ranta2004grammatical}, a language formalism that aims to connect the world of formal language with the one of natural language. GF was originally designed for multilingual text generation in controlled natural language \citep{kolachina2017ud2gf} and recently there has been successful research aimed at extending the scope to wide-coverage parsing \citep{angelov2014fast}. 
+
+Adapting current statistical parsing methods such as those described by \citet[Chapter 14]{jurafsky2009speech} to the GF parser is a problem due to the unique internal representation of language in GF: abstract syntax trees. Inspired by the representation used in compilers for programming languages, abstract syntax trees are defined so that the same type of trees is shared across languages in a way such that translations of the same sentence correspond to the same abstract syntax tree \citep{kolachina2016gf2ud}. Language dependent linearization rules merely defines how an abstract syntax is converted to a string in a language, while syntactic information is encoded in a language independent way in the abstract syntax tree. The linearization rules are designed to be reversible for use in parsers in order to convert strings into abstract syntax trees. The difficulty in using statistics to enhance parsing is to do so in a way that preserves the language-independentness unique to GF --- most state-of-the-art parsers need heavy customization when dealing with a new language.
+
+In order to be truly language independent, abstract syntax trees must do away with much of the ambiguity in language as different languages are often ambiguous in different ways. In turn this means that disambiguation in parsing is of utmost importance. Today disambiguation is done by considering every ambiguous word and every ambiguous grammatical rule in a tree separately and independently. This context-free model, although powerful as is, can be improved by being expanded to use contextual information, information that have been shown to be very important for the task.
+
+% Occupying the niche
 \section{Problem}
-A big problem when parsing text from a language into an abstract syntax tree is ambiguity. While natural language in many ways are highly ambiguous, abstract syntax trees must do away with much of this ambiguity in order to be be language independent. As a simple example of ambiguity in natural language the word ``bass'' might refer to a type of fish in one sentence (``I am fishing bass'') and to a type of instrument in another (``I play the bass''). Since in for example Swedish the word for the fish bass and the instrument bass are different (aborre vs. bass) which means that in order that for example the tree for the sentence ("I have a bass") must be different depending on if one is referring to the fish or the instrument. Another example is the sentence ``I eat the food in the kitchen'', where the clause ``in the kitchen'' could potentially refer either to the location where the eating is done or as an attribute to the food that was eaten (``I am in the kitchen and I eat the food'' or ``I eat the food that is in the kitchen''), depending on the intended meaning, this sentence would be translated differently into Chinese, as can be seen below.
 
-% Enable Chinese input
-\begin{CJK*}{UTF8}{gbsn}
-\begin{exe}
-\label{eat_food_example}
-\ex 
-\glll 我 在 厨房 吃 饭\\
-wo zai chufang chi fan\\
-I in kitchen eat food.\\
-\trans `I eat the food in the kitchen'
-\ex 
-\glll 我 吃 在 厨房 的 饭\\
-wo chi zai chufang de fan\\
-I eat in kitchen [attributive] food\\
-\trans `I eat the food in the kitchen'
-\end{exe}
-\end{CJK*}
+This thesis aim to develop a language model for GF's abstract syntax trees to be used for disambiguating possible trees, especially the ones generated by the current parser of GF. This means that we have to develop a language model capable of assigning probabilities to abstract syntax trees. The reason this is an unique challenge is twofold: 
 
-The problem of disambiguating the ambiguous word ``bass'' might be seen as a problem of \emph{word sense disambiguation}, while the example of eating food is an example of syntactic ambiguity. In Grammatical Framework, the problem of disambiguating abstract syntax trees includes both word sense disambiguation and syntactic disambiguation in that the word sense information for each word of a sentence must be present in the correct abstract syntax tree of the sentence in order for it to be a truly language independent representation of the meaning of the sentence.
+One, we have to define probabilities on a tree structure as opposed to linear text, as well as find data to estimate these probabilities. By limiting us to syntactic head-child relationships between words we are able to define a probability for syntax trees. We then utilize the correspondence between GF and universal-dependency-tagged trees \citep{kolachina2016gf2ud} in order to find data for estimation. Unlike GF, there is plenty of data available with high quality UD trees for us to use \citep{ginter2017conll}. 
 
+Two, because of language independence, we also have to consider the problem with annotating words with its correct word sense. 
+This is achieved by utilizing \emph{Expectation Maximization}, a method for estimating unobserved variables further explained in section \ref{section:em}. We use this method to estimate the underlying sense probabilities, which can't be directly observed in data.
 
-The problem of disambiguating syntactic and lexical ambiguities can largely be divided into two general approaches, corpus based methods and knowledge based methods. Corpus based approaches are based on one defining a probabilistic model using large amount of data such as corpora and treebanks to estimate parameters, while knowledge based method uses precompiled structural sources of data such as dictionaries, thesauri or WordNets to fit an appropriate model. 
+Although we are training our model with data for a handful of languages, the goal is to have a model that is also useful for languages where data doesn't exist. The only assumption we make is that we have a linguistic knowledge base, i.e. a dictionary which maps the senses of a word in the target language to the languages used for training.
 
+\section{Outline}
+In chapter \ref{chapter:theory}, the theory behind our methods are further described. First, a general overview of ambiguities in languages, grammars and parsing is given. Then, we further describe the resources used: Grammatical Framework, Universal Dependencies and Wordnet. Last, n-gram language models and the Expectation Maximization algorithm is explained.
 
+In chapter \ref{chapter:method}, we describe our original work and how it was carried out. It contains a description on how we define our language model, and how we estimate the parameters of the model. Our work with the Wordnet clustering is also described.
 
-\section{Aim}
-The aim of this project is to find a probabilistic disambiguation model for abstract syntax trees able to take contextual information into account as well as a way to estimate parameters for that model. As the abstract syntax trees are language independent the model needs to be language independent and should not be biased towards one particular language. The model and a method to estimate its parameters will be implemented and tested in practice in order to measure its efficiency. To measure the effectiveness of the proposed model we will re-rank trees produced by the current GF-parser according to their probability in the proposed model and measure any increase in performance of a set of applied tasks, such as how well senses of individual words are disambiguated as compared to manually sense-tagged text. Another applied evaluation task will be to measure the performance of the model to correctly predict the occurrence of the definite/indefinite article in translation between Chinese and English, as Chinese grammar does not always distinguish between the two.
+Chapter \ref{chapter:results} presents the results of the evaluation of our models, which is further discussed in chapter \ref{chapter:conclusion} together with pointers to areas of further research. 
+
+% \section{Old}
+% \section{Problem}
+
+% A big problem when parsing text from a language into an abstract syntax tree is ambiguity. The problem of ambiguity in natural language is extensively studied and instances of the problem include word sense disambiguation, syntactic/dependency parsing and part of speech tagging. The need to chose the right abstract syntax tree with respect to an ambiguous sentence is today handled by a statistical model for which parameters have been estimated from data in the English Penn Treebank. This method is far from perfect in that it is a completely context free model, which means that much information that could be used for disambiguation is lost. Another room for improvement in the current statistical model is that the amount\todo{Find out more about model today and why it needs improvement}
+
+% With the findings of the correspondence between GF-RGL and the dependency syntax scheme Universal Dependencies \citep{nivre2016universal} described by \citet{kolachina2016gf2ud} enables the possibility 
+
+% \section{Aim}
+% The aim of this project is to find a probabilistic disambiguation model for abstract syntax trees able to take contextual information into account as well as a way to estimate parameters for that model. As the abstract syntax trees are language independent the model also needs to be language independent and should not be biased towards one particular language. The model and a method to estimate its parameters will be implemented and tested in practice in order to measure its efficiency. To measure the effectiveness of the proposed model we will re-rank trees produced by the current GF-parser according to their probability in the proposed model and measure any increase in performance of a set of applied tasks, such as how well senses of individual words are disambiguated as compared to manually sense-tagged text. Another applied evaluation task will be to measure the performance of the model to correctly predict the occurrence of the definite/indefinite article in translation between Chinese and English, as Chinese grammar does not always distinguish between the two.
 
 
-%\section{Motivation}
-%Parsing\\
-%Problems with current method: similar/comparable to PCFG, poor in context and lexical understanding
-%Tends to do poorly in choosing right sense for word, choosing the right object for verb etc.
+% %\section{Motivation}
+% %Parsing\\
+% %Problems with current method: similar/comparable to PCFG, poor in context and lexical understanding
+% %Tends to do poorly in choosing right sense for word, choosing the right object for verb etc.

@@ -1,0 +1,89 @@
+
+\section{Example}
+\begin{itemize}
+    \item A small example illustrating the EM-algorithm
+    \item Describe how we can use several languages to get a signal even though we have ambiguous words.
+\end{itemize}
+\begin{description}
+\item[Languages] English, Swedish
+\item[English Vocabulary] \emph{play, gamble}
+\item[Swedish Vocabulary] \emph{leka, spela}
+\item[Latent Space] \emph{\stackunder{child\_play}{\bf 1}, \stackunder{instrument\_play}{\bf 2}, \stackunder{gamble}{\bf 3}}
+
+\item[English Corpus] play play play gamble
+\item[Swedish Corpus] spela spela leka leka
+\end{description}
+
+\textbf{Dictionary:}
+\begin{align*}
+\text{play} &= \{\mathbf{1}, \mathbf{2} \} \\
+\text{gamble} &= \{ \mathbf{3} \} \\ \\
+\text{spela} &= \{ \mathbf{2}, \mathbf{3} \} \\
+\text{leka} &= \{ \mathbf{1} \} \\
+\end{align*}
+
+It would be easy if we knew the underlying meaning
+(maximum likelihood)
+\begin{description}
+\item[English Corpus] \stackunder{play}{\bf 1} \stackunder{play}{\bf 1} \stackunder{play}{\bf 2}  \stackunder{gamble}{\bf 3}
+\item[Swedish Corpus] \stackunder{leka}{\bf 1} \stackunder{leka}{\bf 1} \stackunder{spela}{\bf 2} \stackunder{spela}{\bf 3}
+\end{description}
+
+
+\begin{align*}
+    P(\mathbf{1}) &= 0.5 \\
+    P(\mathbf{2}) &= 0.25  \\
+    P(\mathbf{3}) &= 0.25 \\
+\end{align*}
+\subsubsection*{Equations}
+Expectation step:
+\begin{equation*}
+\hat c^t_{sij} = \frac{c_{si}\pi^{t-1}_{j}}{\sum_{k: y_k \in D_{si}}\pi^{t-1}_{k}}
+\end{equation*}
+Maximization step:
+\begin{equation*}
+\begin{split}
+\pi^t_j &= \sum_{s,i}\frac{\hat c^t_{sij}}
+{N}\\
+\end{split}
+\end{equation*}
+\subsubsection*{First iteration}
+Initial guess:    
+\begin{equation*}
+P_0(\mathbf{1}) =  P_0(\mathbf{2}) =  P_0(\mathbf{3}) = 0.33
+\end{equation*}
+Expectation: 
+
+\begin{align*}
+    c_1 &= 1.5 + 2 = 3.5 \\ 
+    c_2 &= 1.5 + 1 = 2.5 \\
+    c_3 &= 1 + 1 = 2
+\end{align*}
+Maximization: 
+
+\begin{align*}
+    P_1 (\mathbf{1}) &= c_1/c_{\text{total}} = 3.5/8    \approx 0.44 \\
+    P_1 (\mathbf{2}) &= c_2/c_{\text{total}} = 2.5/8 \approx 0.31 \\
+    P_1 (\mathbf{3}) &= c_3/c_{\text{total}} = 2/8   \approx 0.25
+\end{align*}
+
+\subsubsection*{Second iteration} 
+Expectation: 
+\begin{align*}
+    c_1 &= 1.8 + 2 = 3.8 \\ 
+    c_2 &= 1.2 + 1.1 = 2.3 \\
+    c_3 &= 1 + 0.9 = 1.9
+\end{align*}
+Maximization:
+\begin{align*}
+    P_2 (\mathbf{1}) &= c_1/c_{\text{total}} = 3.8/8 \approx 0.48 \\
+    P_2 (\mathbf{2}) &= c_2/c_{\text{total}} = 2.3/8 \approx 0.29 \\
+    P_2 (\mathbf{3}) &= c_3/c_{\text{total}} = 1.9/8 \approx 0.24
+\end{align*}
+
+\subsubsection*{10th iteration}
+\begin{align*}
+    P_{10} (\mathbf{1}) & \approx 0.497 \\
+    P_{10} (\mathbf{2}) & \approx 0.256 \\
+    P_{10} (\mathbf{3}) & \approx 0.247
+\end{align*}

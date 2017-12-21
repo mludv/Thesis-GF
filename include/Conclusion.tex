@@ -1,8 +1,42 @@
 % CREATED BY DAVID FRISK, 2016
 \chapter{Conclusion}
-
-You may consider to instead divide this chapter into discussion of the results and a summary. 
+\label{chapter:conclusion}
+In this thesis we have implemented a method for disambiguating between parse trees, especially focused on the abstract syntax trees created by the GF parser. In order to do this, we developed a language model able to assign probabilities to these trees. We decided to work with a bigram model balbalbla. In order to estimate the parameters of this model it is necessary to assign probabilities to the underlying meaning of the words, and not the lemmas themselves. This was done by utilizing the Expectation Maximization, an unsupervised method for estimating unobserved variables. We adapted the method to our context and ran test to show that we got useful signals. Since 
 
 \section{Discussion}
+One problem in the evaluation of the method is the inability to test performance in re-ranking trees parsed by the GF parser for anything else than the built in GF dictionary, instead leaving evaluation at only doing word sense disambiguation over UD dependency trees. In this evaluation the GF dictionary performed relatively poorly together with the method compared to the Wordnet based dictionary. Although our experiments indicate that the method is able to produce results in doing lexical disambiguation it does not give any indication on whether the method is able to rank syntactic ambiguities in a meaningful way or not.
 
+For the word sense disambiguation/entity linking SemEval 2015 shared task the results are comparable to those of XXX, which was last in the field. However, it is important to remember that this kind of task is a secondary application and should only be seen as an indicator of the methods capability of disambiguating trees in the lexical sense. 
+
+A shortcoming of the method is the disk space needed to store the estimated parameter sets even for the clustered bigram models. This points to that in order to expand the method to larger models estimating probabilities for larger subtrees, a way to shrink the parameter space through some kind of dimension reduction or pruning is necessary. Possible solutions would be to encode the information more densely through some kind of vector embeddings. The fact that the clustered wordnet dictionary, which can be seen as a type of dimension reduction, performs well can be seen as a positive indicator that investigating such techniques have merit and could in fact increase the performance because due to alleviation of the problem of data sparsity.
+
+In analyzing the results it is hard to isolate where in the stack improvements would yield a higher performance in the model due to the many different parts of the model. Possible points where improvement could be of importance include the parsing of UD trees, the syntactic n-gram probability model used, the parameter estimation done through EM and the knowledge source used as dictionary. The point most thoroughly investigated in this work is the usage of different dictionaries, which was shown to be very significant.
+\begin{itemize}
+    \item Large stack - hard to know which technology "fails" dictionary-parser-syntactic ngram-EM-multilingual inference
+    \item clustering is good
+    \item first babelnet sense
+    \item deprel 
+    \item viktigt med dictionary
+    \item diskutera sparseness
+\end{itemize}
 \section{Conclusion}
+\begin{itemize}
+    \item We do get signal from context
+    \item We do get signal using completely unsupervised training <-- detta borde vi trycka på, det är väl lite det som gör oss unika?
+    \item Clustering synsets work well
+    \item The method has problems scaling
+    
+\end{itemize}
+\section{Future Work}
+One of the largest drawback with the proposed model is that it does not scale very well with respect to the size of dictionary and the size of context used. However, as the experiments with the clustered wordnet dictionaries have shown that there is potential to maintain and in some cases even improve performance by using  a simplified lower dimensional parameter space to approximate the full model. Further investigation could be done on using dimensionality reduction techniques such as singular value decomposition on the estimated parameters, which could possibly address the issue of the trained parameters taking very large disk space, although it is unclear whether this can be used to address computational issues experienced during parameter estimation. 
+
+Further application of the current model that merits exploration is further use of the language dependent parameters denoted $\phi$. These are the conditional probabilities that a certain abstract representation is linearized to a certain observable subtree and could be used to improve disambiguation for languages where they are available, but could also be used to allow for abstract models 
+\begin{itemize}
+    \item Use Richardsons model to expand to more types of sub-trees, needs to solve computational problems or replace EM
+    \item Emulate Collins Model 1 without distance, estimate probabilities using future UD2GF
+    \item Incorporate clustering and hyper count in EM algorithm
+    \item Sense embeddings
+    \item Babelnet and possdicts extracted from ordinary dictionaries only
+    \item Probabilistic lexical paraphrasing using synset variants and phi probs
+    \item Use phi probs for better inference
+\end{itemize}
